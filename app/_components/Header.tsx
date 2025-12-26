@@ -11,7 +11,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="flex items-center border-b border-border bg-background py-2">
+    <header className="flex items-center border-b border-border bg-background py-4">
       <div className="container flex items-center justify-between">
         {/* 왼쪽: 로고 */}
         <Link href="/" className="flex items-center">
