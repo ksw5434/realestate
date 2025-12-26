@@ -215,12 +215,12 @@ export default function Search() {
   };
 
   return (
-    <div className="container py-8">
+    <div className="container py-2">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* 왼쪽 컬럼: 부동산 상세 정보 */}
         <div className="lg:col-span-2 space-y-4">
           {/* 네비게이션 탭 */}
-          <div className="sticky top-4 z-10 flex items-center gap-4 border-b border-border pb-2 bg-background pt-2">
+          <div className="sticky top-0 z-10 flex items-center gap-4 border-b border-border pt-4 pb-2 bg-background pt-2">
             {/* 매물번호 태그 */}
             <div className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-md bg-card">
               <MapPin className="w-4 h-4 text-foreground" />
@@ -868,7 +868,7 @@ export default function Search() {
         </div>
 
         {/* 오른쪽 컬럼: 에이전트 정보 및 문의 폼 */}
-        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-4 lg:self-start">
+        <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-1 pt-4 lg:self-start">
           {/* 에이전트 정보 카드 */}
           <div className="bg-primary text-primary-foreground rounded-lg p-6">
             <div className="flex items-start gap-4 mb-4">
