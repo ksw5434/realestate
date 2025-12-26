@@ -384,19 +384,18 @@ export default function Search() {
             {/* 부동산 상세 정보 테이블 */}
             <div className="border border-border rounded-lg overflow-hidden bg-card">
               <div className="divide-y divide-border">
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 첫 번째 행: 공급면적 | 해당층/총층 */}
+                <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       공급면적
                     </span>
                   </div>
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 border-r border-border">
                     <span className="text-sm text-foreground">
                       {propertyInfo.details.supplyArea}
                     </span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       해당층/총층
@@ -408,19 +407,18 @@ export default function Search() {
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 두 번째 행: 방/욕실 | 입주가능일 */}
+                <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       방/욕실
                     </span>
                   </div>
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 border-r border-border">
                     <span className="text-sm text-foreground">
                       {propertyInfo.details.roomsBaths}
                     </span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       입주가능일
@@ -432,17 +430,16 @@ export default function Search() {
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 세 번째 행: 방향 | 현관구조 */}
+                <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">방향</span>
                   </div>
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 border-r border-border">
                     <span className="text-sm text-foreground">
                       {propertyInfo.details.direction}
                     </span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       현관구조
@@ -454,21 +451,20 @@ export default function Search() {
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 네 번째 행: 기본옵션정보 | 관리비 */}
+                <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       기본옵션정보
                     </span>
                   </div>
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 border-r border-border">
                     {propertyInfo.details.basicOptions && (
                       <span className="text-sm text-primary font-semibold">
                         V
                       </span>
                     )}
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       관리비
@@ -488,19 +484,18 @@ export default function Search() {
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 다섯 번째 행: 난방방식 | 사용승인일 */}
+                <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       난방방식
                     </span>
                   </div>
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 border-r border-border">
                     <span className="text-sm text-foreground">
                       {propertyInfo.details.heatingMethod}
                     </span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       사용승인일
@@ -512,19 +507,18 @@ export default function Search() {
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 여섯 번째 행: 총세대수 | 총주차대수 */}
+                <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       총세대수
                     </span>
                   </div>
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 border-r border-border">
                     <span className="text-sm text-foreground">
                       {propertyInfo.details.totalHouseholds}
                     </span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       총주차대수
@@ -536,19 +530,18 @@ export default function Search() {
                     </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
+                {/* 일곱 번째 행: 건설사 | 물건번호 */}
+                <div className="grid grid-cols-1 md:grid-cols-4">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       건설사
                     </span>
                   </div>
-                  <div className="px-4 py-3">
+                  <div className="px-4 py-3 border-r border-border">
                     <span className="text-sm text-foreground">
                       {propertyInfo.details.constructor}
                     </span>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2">
                   <div className="px-4 py-3 bg-muted/50 border-r border-border">
                     <span className="text-sm text-muted-foreground">
                       물건번호
@@ -562,117 +555,24 @@ export default function Search() {
                 </div>
               </div>
             </div>
-
-            {/* 연락처 정보 */}
-            <div className="border border-border rounded-lg p-6 bg-card">
-              <h3 className="text-lg font-semibold text-foreground mb-4">
-                {propertyInfo.contact.office}
-              </h3>
-              <div className="space-y-2 text-sm">
-                <p className="flex items-center gap-2 text-foreground">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">TEL:</span>
-                  <a
-                    href={`tel:${propertyInfo.contact.tel.replace(
-                      /[()]/g,
-                      ""
-                    )}`}
-                    className="text-foreground hover:text-primary hover:underline"
-                  >
-                    {propertyInfo.contact.tel}
-                  </a>
-                </p>
-                <p className="flex items-center gap-2 text-foreground">
-                  <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">HP:</span>
-                  <a
-                    href={`tel:${propertyInfo.contact.mobile.replace(
-                      /-/g,
-                      ""
-                    )}`}
-                    className="text-foreground hover:text-primary hover:underline"
-                  >
-                    {propertyInfo.contact.mobile}
-                  </a>
-                </p>
-              </div>
-            </div>
-
-            {/* 재무 정보 섹션 */}
-            <div className="space-y-6">
-              {/* 세금 정보 */}
-              <div className="border border-border rounded-lg p-6 bg-card">
-                <h3 className="text-lg font-semibold text-foreground mb-4">
-                  세금정보
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      취득세
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">
-                        {propertyInfo.financial.acquisitionTax}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({propertyInfo.financial.acquisitionTaxNote})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 중개보수 정보 */}
-              <div className="border border-border rounded-lg p-6 bg-card">
-                <h3 className="text-lg font-semibold text-foreground mb-4">
-                  중개보수
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      매매시
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">
-                        {propertyInfo.financial.brokerageFeeSale}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({propertyInfo.financial.brokerageFeeNote})
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      전월세시
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-foreground">
-                        {propertyInfo.financial.brokerageFeeRent}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        ({propertyInfo.financial.brokerageFeeNote})
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-4 text-xs text-muted-foreground">
-                  {propertyInfo.financial.disclaimer}
-                </p>
-              </div>
-            </div>
           </div>
 
           {/* 매물 설명 섹션 */}
           <div id="description" className="scroll-mt-24">
-            <div className="space-y-4">
-              {propertyInfo.description.map((paragraph, index) => (
-                <p
-                  key={index}
-                  className="text-sm text-foreground leading-relaxed"
-                >
-                  {paragraph}
-                </p>
-              ))}
+            <div className="border border-border rounded-lg p-6 bg-card">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                매물 설명
+              </h3>
+              <div className="space-y-4">
+                {propertyInfo.description.map((paragraph, index) => (
+                  <p
+                    key={index}
+                    className="text-sm text-foreground leading-relaxed"
+                  >
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -792,11 +692,70 @@ export default function Search() {
             </div>
           </div>
 
+          {/* 재무 정보 섹션 */}
+          <div className="space-y-4">
+            {/* 세금 정보 */}
+            <div className="border border-border rounded-lg p-6 bg-card">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                세금정보
+              </h3>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">취득세</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {propertyInfo.financial.acquisitionTax}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({propertyInfo.financial.acquisitionTaxNote})
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 중개보수 정보 */}
+            <div className="border border-border rounded-lg p-6 bg-card">
+              <h3 className="text-lg font-semibold text-foreground mb-4">
+                중개보수
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">매매시</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {propertyInfo.financial.brokerageFeeSale}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({propertyInfo.financial.brokerageFeeNote})
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    전월세시
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">
+                      {propertyInfo.financial.brokerageFeeRent}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({propertyInfo.financial.brokerageFeeNote})
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <p className="mt-4 text-xs text-muted-foreground">
+                {propertyInfo.financial.disclaimer}
+              </p>
+            </div>
+          </div>
+
           {/* 다른 매물 섹션 */}
           <div id="others" className="scroll-mt-24">
             <div className="border border-border rounded-lg p-6 bg-card">
               <h3 className="text-lg font-semibold text-foreground mb-4">
-                같은 단지 다른 매물
+                다른 매물
               </h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
