@@ -77,7 +77,7 @@ export default function Search() {
     },
     description: [
       "반포자이 전문중개사무소에서 소개하는 이 매물은 깔끔하게 정리된 상태로 즉시 입주가 가능합니다.",
-      "2024년 1월 기준 반포자이 최근 실거래가: 20억 6,000만원, 20억 4,000만원, 20억 8,000만원, 21억 4,000만원, 22억 6,000만원 등이 거래되었습니다.",
+      "2026년 1월 기준 반포자이 최근 실거래가: 20억 6,000만원, 20억 4,000만원, 20억 8,000만원, 21억 4,000만원, 22억 6,000만원 등이 거래되었습니다.",
       "인근에 반포초등학교, 반포중학교, 반포고등학교가 위치하여 명문 학군으로 유명합니다.",
       "교통 및 생활편의: 신세계백화점, 뉴코아아울렛, 강남성모병원, 국립중앙도서관 등이 인접해 있어 생활이 편리합니다.",
       "반포자이 전문중개사무소는 실사진을 사용합니다.",
@@ -168,9 +168,7 @@ export default function Search() {
           const sectionId = entry.target.id;
           if (
             sectionId &&
-            ["info", "description", "land", "location", "others"].includes(
-              sectionId
-            )
+            ["info", "description", "location", "others"].includes(sectionId)
           ) {
             setActiveTab(sectionId);
           }
@@ -184,7 +182,7 @@ export default function Search() {
     );
 
     // 모든 섹션 관찰 시작
-    const sections = ["info", "description", "land", "location", "others"];
+    const sections = ["info", "description", "location", "others"];
     sections.forEach((sectionId) => {
       const element = document.getElementById(sectionId);
       if (element) {
@@ -251,16 +249,6 @@ export default function Search() {
                 }`}
               >
                 매물 설명
-              </button>
-              <button
-                onClick={() => handleTabClick("land")}
-                className={`text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === "land"
-                    ? "text-primary border-primary"
-                    : "text-muted-foreground border-transparent hover:text-foreground"
-                }`}
-              >
-                토지 정보
               </button>
               <button
                 onClick={() => handleTabClick("location")}
@@ -572,49 +560,6 @@ export default function Search() {
                     {paragraph}
                   </p>
                 ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 토지 정보 섹션 */}
-          <div id="land" className="scroll-mt-24">
-            <div className="border border-border rounded-lg p-6 bg-card">
-              <h3 className="text-lg font-semibold text-foreground mb-4">
-                토지 정보
-              </h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm text-muted-foreground">지목</span>
-                    <p className="text-sm text-foreground mt-1">대지</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">면적</span>
-                    <p className="text-sm text-foreground mt-1">
-                      {propertyInfo.details.supplyArea}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">
-                      용도지역
-                    </span>
-                    <p className="text-sm text-foreground mt-1">
-                      제1종 일반주거지역
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">
-                      건폐율
-                    </span>
-                    <p className="text-sm text-foreground mt-1">60%</p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">
-                      용적률
-                    </span>
-                    <p className="text-sm text-foreground mt-1">200%</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
