@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -32,7 +32,8 @@ const generateAvatarFromEmail = (email: string): string => {
   return `https://ui-avatars.com/api/?name=${encodedEmail}&background=random&size=128&bold=true&format=png`;
 };
 
-export default function ProfilePage() {
+// useSearchParams를 사용하는 실제 컨텐츠 컴포넌트
+function ProfilePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -1147,5 +1148,22 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Suspense로 감싸는 래퍼 컴포넌트
+export default function ProfilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        </div>
+      }
+    >
+      <ProfilePageContent />
+    </Suspense>
   );
 }
