@@ -19,6 +19,18 @@ import {
   FileText,
 } from "lucide-react";
 import Link from "next/link";
+import { getProfile, updateProfile } from "@/lib/profile-client";
+import { getCurrentUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/client";
+
+// 이메일 기반 랜덤 아바타 이미지 생성 함수
+const generateAvatarFromEmail = (email: string): string => {
+  if (!email) return "";
+  // UI Avatars 서비스를 사용하여 이메일 기반 랜덤 아바타 생성
+  // 이메일을 인코딩하여 URL에 안전하게 사용
+  const encodedEmail = encodeURIComponent(email);
+  return `https://ui-avatars.com/api/?name=${encodedEmail}&background=random&size=128&bold=true&format=png`;
+};
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -28,7 +40,7 @@ export default function ProfilePage() {
     name: "",
     email: "",
     phone: "",
-    profileImage: "/search/profile.jpg", // 기본 프로필 이미지
+    profileImage: "", // 프로필 이미지 (없으면 이메일 기반 랜덤 이미지 사용)
   });
 
   // 회사 정보 상태 관리
@@ -56,6 +68,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCompanyLoading, setIsCompanyLoading] = useState(false);
   const [isPasswordLoading, setIsPasswordLoading] = useState(false);
+  const [isImageUploading, setIsImageUploading] = useState(false); // 이미지 업로드 중 상태
   const [error, setError] = useState("");
   const [companyError, setCompanyError] = useState("");
   const [success, setSuccess] = useState("");
@@ -63,68 +76,59 @@ export default function ProfilePage() {
 
   // 컴포넌트 마운트 시 사용자 정보 로드
   useEffect(() => {
-    // TODO: 실제 API에서 사용자 정보 가져오기
-    // const fetchUserProfile = async () => {
-    //   try {
-    //     const token = localStorage.getItem('token');
-    //     const response = await fetch('/api/user/profile', {
-    //       headers: { 'Authorization': `Bearer ${token}` },
-    //     });
-    //     const data = await response.json();
-    //     setProfileData({
-    //       name: data.name,
-    //       email: data.email,
-    //       phone: data.phone,
-    //       profileImage: data.profileImage || '/search/profile.jpg',
-    //     });
-    //   } catch (err) {
-    //     console.error('프로필 로드 실패:', err);
-    //   }
-    // };
-    // fetchUserProfile();
+    const loadUserData = async () => {
+      try {
+        // 1. 현재 사용자 정보 가져오기 (이메일)
+        const user = await getCurrentUser();
+        if (!user) {
+          router.push("/auth/login");
+          return;
+        }
 
-    // 임시: 기본 데이터 설정
-    setProfileData({
-      name: "김수환",
-      email: "suhwan0219@gmail.com",
-      phone: "010-6579-2424",
-      profileImage: "/search/profile.jpg",
-    });
+        // 2. 프로필 정보 가져오기
+        const { profile, error: profileError } = await getProfile();
 
-    // TODO: 실제 API에서 회사 정보 가져오기
-    // const fetchCompanyInfo = async () => {
-    //   try {
-    //     const token = localStorage.getItem('token');
-    //     const response = await fetch('/api/user/company', {
-    //       headers: { 'Authorization': `Bearer ${token}` },
-    //     });
-    //     const data = await response.json();
-    //     setCompanyData({
-    //       companyName: data.companyName,
-    //       businessNumber: data.businessNumber,
-    //       representative: data.representative,
-    //       companyPhone: data.companyPhone,
-    //       companyEmail: data.companyEmail,
-    //       address: data.address,
-    //       website: data.website || '',
-    //     });
-    //   } catch (err) {
-    //     console.error('회사 정보 로드 실패:', err);
-    //   }
-    // };
-    // fetchCompanyInfo();
+        if (profileError) {
+          console.error("프로필 로드 실패:", profileError);
+          setError("프로필 정보를 불러오는데 실패했습니다.");
+          return;
+        }
 
-    // 임시: 기본 회사 데이터 설정
-    setCompanyData({
-      companyName: "힐스테이트 황금엘포레 부동산",
-      businessNumber: "123-45-67890",
-      representative: "김수환",
-      companyPhone: "(053) 792-7777",
-      companyEmail: "suhwan0219@gmail.com",
-      address: "대구광역시 수성구 황금동",
-      website: "",
-    });
-  }, []);
+        if (profile) {
+          // 프로필 이미지가 없으면 이메일 기반 랜덤 이미지 생성
+          const profileImageUrl = profile.profile_image
+            ? profile.profile_image
+            : user.email
+            ? generateAvatarFromEmail(user.email)
+            : "";
+
+          // 프로필 데이터 설정
+          setProfileData({
+            name: profile.name || "",
+            email: user.email || "",
+            phone: profile.phone || "",
+            profileImage: profileImageUrl,
+          });
+
+          // 회사 정보 설정
+          setCompanyData({
+            companyName: profile.company_name || "",
+            businessNumber: profile.business_number || "",
+            representative: profile.representative || "",
+            companyPhone: profile.company_phone || "",
+            companyEmail: profile.company_email || "",
+            address: profile.address || "",
+            website: profile.website || "",
+          });
+        }
+      } catch (err) {
+        console.error("데이터 로드 실패:", err);
+        setError("데이터를 불러오는데 실패했습니다.");
+      }
+    };
+
+    loadUserData();
+  }, [router]);
 
   // 프로필 정보 변경 핸들러
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,30 +151,115 @@ export default function ProfilePage() {
   };
 
   // 프로필 이미지 변경 핸들러
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // 파일 크기 검사 (5MB 제한)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("이미지 크기는 5MB 이하여야 합니다.");
-        return;
+    if (!file) return;
+
+    // 파일 크기 검사 (5MB 제한)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("이미지 크기는 5MB 이하여야 합니다.");
+      return;
+    }
+
+    // 이미지 파일 형식 검사
+    if (!file.type.startsWith("image/")) {
+      setError("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+
+    setIsImageUploading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const supabase = createClient();
+
+      // 현재 사용자 정보 가져오기
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        throw new Error("로그인이 필요합니다.");
       }
 
-      // 이미지 파일 형식 검사
-      if (!file.type.startsWith("image/")) {
-        setError("이미지 파일만 업로드 가능합니다.");
-        return;
+      // 파일 확장자 추출
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `profile-images/${fileName}`;
+
+      // 기존 프로필 이미지가 있으면 삭제 (선택사항)
+      // 이 부분은 필요에 따라 주석 처리하거나 활성화할 수 있습니다
+      // const currentImageUrl = profileData.profileImage;
+      // if (currentImageUrl && currentImageUrl.startsWith("http")) {
+      //   const oldFileName = currentImageUrl.split("/").pop();
+      //   if (oldFileName) {
+      //     await supabase.storage
+      //       .from("profiles")
+      //       .remove([`profile-images/${oldFileName}`]);
+      //   }
+      // }
+
+      // Supabase Storage에 파일 업로드
+      const { error: uploadError } = await supabase.storage
+        .from("profiles")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false, // 동일한 파일명이 있으면 덮어쓰지 않음
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message || "이미지 업로드에 실패했습니다.");
       }
 
-      // 미리보기 생성
+      // 업로드된 파일의 공개 URL 가져오기
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("profiles").getPublicUrl(filePath);
+
+      // 미리보기용으로 로컬 파일도 표시
       const reader = new FileReader();
       reader.onloadend = () => {
         setProfileData((prev) => ({
           ...prev,
-          profileImage: reader.result as string,
+          profileImage: reader.result as string, // 미리보기용
         }));
       };
       reader.readAsDataURL(file);
+
+      // 프로필 데이터베이스에 이미지 URL 저장
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ profile_image: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) {
+        throw new Error(
+          updateError.message || "프로필 이미지 업데이트에 실패했습니다."
+        );
+      }
+
+      // 성공 메시지 표시
+      setSuccess("프로필 이미지가 성공적으로 업로드되었습니다.");
+      setTimeout(() => setSuccess(""), 3000);
+
+      // 프로필 데이터에 실제 URL 저장 (미리보기 대신)
+      setProfileData((prev) => ({
+        ...prev,
+        profileImage: publicUrl,
+      }));
+    } catch (err) {
+      console.error("이미지 업로드 실패:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "이미지 업로드에 실패했습니다. 다시 시도해주세요."
+      );
+    } finally {
+      setIsImageUploading(false);
+      // 파일 입력 초기화 (같은 파일을 다시 선택할 수 있도록)
+      e.target.value = "";
     }
   };
 
@@ -181,15 +270,8 @@ export default function ProfilePage() {
     setSuccess("");
 
     // 입력값 유효성 검사
-    if (!profileData.name || !profileData.email || !profileData.phone) {
-      setError("모든 필드를 입력해주세요.");
-      return;
-    }
-
-    // 이메일 형식 검사
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(profileData.email)) {
-      setError("올바른 이메일 형식을 입력해주세요.");
+    if (!profileData.name || !profileData.phone) {
+      setError("이름과 전화번호를 입력해주세요.");
       return;
     }
 
@@ -203,24 +285,23 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     try {
-      // TODO: 실제 API 호출로 대체 필요
-      // const token = localStorage.getItem('token');
-      // const response = await fetch('/api/user/profile', {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${token}`,
-      //   },
-      //   body: JSON.stringify(profileData),
-      // });
-      //
-      // if (!response.ok) {
-      //   throw new Error('프로필 업데이트에 실패했습니다.');
-      // }
+      // Supabase를 사용한 프로필 업데이트
+      const { profile: updatedProfile, error: updateError } =
+        await updateProfile({
+          name: profileData.name,
+          phone: profileData.phone,
+          profile_image: profileData.profileImage,
+        });
 
-      // 임시: 성공 시뮬레이션
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("프로필 업데이트:", profileData);
+      if (updateError) {
+        throw new Error(
+          updateError.message || "프로필 업데이트에 실패했습니다."
+        );
+      }
+
+      if (!updatedProfile) {
+        throw new Error("프로필 업데이트에 실패했습니다.");
+      }
 
       setSuccess("프로필이 성공적으로 업데이트되었습니다.");
 
@@ -283,24 +364,27 @@ export default function ProfilePage() {
     setIsCompanyLoading(true);
 
     try {
-      // TODO: 실제 API 호출로 대체 필요
-      // const token = localStorage.getItem('token');
-      // const response = await fetch('/api/user/company', {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${token}`,
-      //   },
-      //   body: JSON.stringify(companyData),
-      // });
-      //
-      // if (!response.ok) {
-      //   throw new Error('회사 정보 업데이트에 실패했습니다.');
-      // }
+      // Supabase를 사용한 회사 정보 업데이트
+      const { profile: updatedProfile, error: updateError } =
+        await updateProfile({
+          company_name: companyData.companyName,
+          business_number: companyData.businessNumber,
+          representative: companyData.representative,
+          company_phone: companyData.companyPhone,
+          company_email: companyData.companyEmail,
+          address: companyData.address,
+          website: companyData.website || null,
+        });
 
-      // 임시: 성공 시뮬레이션
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("회사 정보 업데이트:", companyData);
+      if (updateError) {
+        throw new Error(
+          updateError.message || "회사 정보 업데이트에 실패했습니다."
+        );
+      }
+
+      if (!updatedProfile) {
+        throw new Error("회사 정보 업데이트에 실패했습니다.");
+      }
 
       setSuccess("회사 정보가 성공적으로 업데이트되었습니다.");
 
@@ -353,27 +437,26 @@ export default function ProfilePage() {
     setIsPasswordLoading(true);
 
     try {
-      // TODO: 실제 API 호출로 대체 필요
-      // const token = localStorage.getItem('token');
-      // const response = await fetch('/api/user/password', {
-      //   method: 'PUT',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${token}`,
-      //   },
-      //   body: JSON.stringify({
-      //     currentPassword: passwordData.currentPassword,
-      //     newPassword: passwordData.newPassword,
-      //   }),
-      // });
-      //
-      // if (!response.ok) {
-      //   throw new Error('비밀번호 변경에 실패했습니다.');
-      // }
+      const supabase = createClient();
 
-      // 임시: 성공 시뮬레이션
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("비밀번호 변경 시도");
+      // 현재 비밀번호 확인 (재로그인으로 확인)
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: profileData.email,
+        password: passwordData.currentPassword,
+      });
+
+      if (signInError) {
+        throw new Error("현재 비밀번호가 올바르지 않습니다.");
+      }
+
+      // 비밀번호 변경
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || "비밀번호 변경에 실패했습니다.");
+      }
 
       setPasswordError("");
       setSuccess("비밀번호가 성공적으로 변경되었습니다.");
@@ -429,25 +512,48 @@ export default function ProfilePage() {
             {/* 프로필 이미지 */}
             <div className="flex flex-col items-center mb-6">
               <div className="relative w-32 h-32 rounded-full overflow-hidden bg-muted mb-4">
-                <Image
-                  src={profileData.profileImage}
-                  alt="프로필 이미지"
-                  fill
-                  className="object-cover"
-                />
+                {isImageUploading ? (
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : profileData.profileImage ? (
+                  <Image
+                    src={profileData.profileImage}
+                    alt="프로필 이미지"
+                    fill
+                    className="object-cover"
+                    unoptimized={profileData.profileImage.startsWith("data:")} // base64 이미지는 최적화 비활성화
+                  />
+                ) : profileData.email ? (
+                  // 프로필 이미지가 없을 때 이메일 기반 랜덤 이미지 표시
+                  <Image
+                    src={generateAvatarFromEmail(profileData.email)}
+                    alt="프로필 이미지"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  // 이메일도 없을 때 기본 아이콘 표시
+                  <div className="w-full h-full flex items-center justify-center bg-muted">
+                    <User className="w-16 h-16 text-muted-foreground" />
+                  </div>
+                )}
               </div>
               <label
                 htmlFor="profile-image"
-                className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md bg-background text-foreground hover:bg-muted transition-colors cursor-pointer text-sm"
+                className={`inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md bg-background text-foreground hover:bg-muted transition-colors cursor-pointer text-sm ${
+                  isImageUploading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 <Camera className="w-4 h-4" />
-                이미지 변경
+                {isImageUploading ? "업로드 중..." : "이미지 변경"}
               </label>
               <input
                 id="profile-image"
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
+                disabled={isImageUploading}
                 className="hidden"
               />
             </div>
@@ -512,7 +618,7 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* 이메일 입력 */}
+              {/* 이메일 입력 (읽기 전용) */}
               <div>
                 <label
                   htmlFor="email"
@@ -530,12 +636,15 @@ export default function ProfilePage() {
                     type="email"
                     required
                     value={profileData.email}
-                    onChange={handleProfileChange}
-                    className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    readOnly
+                    className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-muted text-foreground cursor-not-allowed"
                     placeholder="이메일을 입력하세요"
                     disabled={isLoading}
                   />
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  이메일은 로그인 계정과 연동되어 있어 변경할 수 없습니다.
+                </p>
               </div>
 
               {/* 전화번호 입력 */}

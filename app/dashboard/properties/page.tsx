@@ -1,16 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { getAllProperties } from "@/app/dashboard/properties/actions";
+import { Plus } from "lucide-react";
+import { getAllProperties } from "./actions";
 import { PropertyCard, Property } from "@/app/_components/PropertyCard";
 
-/**
- * 검색 목록 페이지
- * 등록된 모든 매물을 카드 형태로 표시합니다.
- */
-export default function SearchPage() {
-  const router = useRouter();
+export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,6 +28,10 @@ export default function SearchPage() {
     fetchProperties();
   }, []);
 
+  const handleDelete = (id: string) => {
+    setProperties((prev) => prev.filter((p) => p.id !== id));
+  };
+
   if (loading) {
     return (
       <div className="container py-8">
@@ -48,11 +48,23 @@ export default function SearchPage() {
   return (
     <div className="container py-8">
       {/* 페이지 헤더 */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground mb-2">매물 검색</h1>
-        <p className="text-muted-foreground">
-          총 {properties.length}개의 매물이 등록되어 있습니다.
-        </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            등록된 매물
+          </h1>
+          <p className="text-muted-foreground">
+            총 {properties.length}개의 매물이 등록되어 있습니다.
+          </p>
+        </div>
+        {/* 글쓰기 버튼 */}
+        <Link
+          href="/dashboard/properties/new"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+        >
+          <Plus className="w-4 h-4" />
+          <span>글쓰기</span>
+        </Link>
       </div>
 
       {/* 에러 메시지 */}
@@ -66,6 +78,12 @@ export default function SearchPage() {
       {properties.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">등록된 매물이 없습니다.</p>
+          <Link
+            href="/dashboard/properties/new"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" />첫 매물 등록하기
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -73,14 +91,7 @@ export default function SearchPage() {
             <PropertyCard
               key={property.id}
               property={property}
-              variant="search"
-              onDelete={() => {
-                // 검색 페이지에서는 삭제 기능 없음
-              }}
-              onClick={() => {
-                // 카드 클릭 시 상세 페이지로 이동
-                router.push(`/search/${property.id}`);
-              }}
+              onDelete={handleDelete}
             />
           ))}
         </div>

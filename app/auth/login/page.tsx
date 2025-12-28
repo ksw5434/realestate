@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { signInWithEmail } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,10 +19,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
     // 입력값 유효성 검사
     if (!email || !password) {
       setError("이메일과 비밀번호를 모두 입력해주세요.");
+      setIsLoading(false);
       return;
     }
 
@@ -29,40 +32,41 @@ export default function LoginPage() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("올바른 이메일 형식을 입력해주세요.");
+      setIsLoading(false);
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // TODO: 실제 API 호출로 대체 필요
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      //
-      // if (!response.ok) {
-      //   throw new Error('로그인에 실패했습니다.');
-      // }
-      //
-      // const data = await response.json();
-      // localStorage.setItem('token', data.token);
-      // router.push('/');
+      // Supabase를 사용한 로그인
+      const { user, error: loginError } = await signInWithEmail(
+        email,
+        password
+      );
 
-      // 임시: 성공 시뮬레이션 (실제 구현 시 제거)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("로그인 시도:", { email, password });
+      if (loginError) {
+        setError(
+          loginError.message || "로그인에 실패했습니다. 다시 시도해주세요."
+        );
+        setIsLoading(false);
+        return;
+      }
 
-      // 로그인 성공 시 홈으로 이동
-      router.push("/");
+      if (!user) {
+        setError("로그인에 실패했습니다. 다시 시도해주세요.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 로그인 성공 시 프로필 페이지로 이동
+      router.push("/dashboard/profile");
+      router.refresh(); // 페이지 새로고침하여 인증 상태 반영
     } catch (err) {
+      console.error("로그인 중 예외 발생:", err);
       setError(
         err instanceof Error
           ? err.message
           : "로그인에 실패했습니다. 다시 시도해주세요."
       );
-    } finally {
       setIsLoading(false);
     }
   };

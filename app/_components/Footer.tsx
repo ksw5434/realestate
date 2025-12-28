@@ -79,6 +79,14 @@ export default function Footer() {
                     블로그
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/auth/login"
+                    className="hover:text-primary transition-colors duration-200"
+                  >
+                    관리자
+                  </Link>
+                </li>
               </ul>
             </nav>
           </div>

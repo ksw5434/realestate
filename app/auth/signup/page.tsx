@@ -3,18 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, User, Phone, Check } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Check } from "lucide-react";
+import { signUpWithEmail } from "@/lib/auth";
 
 export default function SignupPage() {
   const router = useRouter();
 
   // 폼 상태 관리
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
     confirmPassword: "",
-    phone: "",
   });
 
   // 약관 동의 상태 관리
@@ -53,19 +52,8 @@ export default function SignupPage() {
     setError("");
 
     // 필수 필드 검사
-    if (
-      !formData.name ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
+    if (!formData.email || !formData.password || !formData.confirmPassword) {
       setError("필수 항목을 모두 입력해주세요.");
-      return;
-    }
-
-    // 이름 길이 검사
-    if (formData.name.length < 2) {
-      setError("이름은 최소 2자 이상이어야 합니다.");
       return;
     }
 
@@ -88,15 +76,6 @@ export default function SignupPage() {
       return;
     }
 
-    // 전화번호 형식 검사 (입력된 경우)
-    if (formData.phone) {
-      const phoneRegex = /^[0-9-]+$/;
-      if (!phoneRegex.test(formData.phone)) {
-        setError("올바른 전화번호 형식을 입력해주세요.");
-        return;
-      }
-    }
-
     // 필수 약관 동의 검사
     if (!agreements.terms || !agreements.privacy) {
       setError("필수 약관에 동의해주세요.");
@@ -106,44 +85,45 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      // TODO: 실제 API 호출로 대체 필요
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     name: formData.name,
-      //     email: formData.email,
-      //     password: formData.password,
-      //     phone: formData.phone || undefined,
-      //     marketingAgreement: agreements.marketing,
-      //   }),
-      // });
-      //
-      // if (!response.ok) {
-      //   const errorData = await response.json();
-      //   throw new Error(errorData.message || '회원가입에 실패했습니다.');
-      // }
-      //
-      // const data = await response.json();
-      // localStorage.setItem('token', data.token);
-      // router.push('/dashboard/profile');
+      // Supabase를 사용한 회원가입
+      const { user, error: signupError } = await signUpWithEmail(
+        formData.email,
+        formData.password
+      );
 
-      // 임시: 성공 시뮬레이션 (실제 구현 시 제거)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("회원가입 시도:", {
-        ...formData,
-        marketingAgreement: agreements.marketing,
-      });
+      if (signupError) {
+        // 에러 메시지 처리
+        let errorMessage = "회원가입에 실패했습니다. 다시 시도해주세요.";
 
-      // 회원가입 성공 시 프로필 페이지로 이동
-      router.push("/dashboard/profile");
+        if (signupError.message.includes("이미 등록된")) {
+          errorMessage = "이미 등록된 이메일입니다.";
+        } else if (signupError.message.includes("비밀번호")) {
+          errorMessage = "비밀번호가 너무 약합니다. 더 강한 비밀번호를 사용해주세요.";
+        } else {
+          errorMessage = signupError.message;
+        }
+
+        setError(errorMessage);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!user) {
+        setError("회원가입에 실패했습니다. 다시 시도해주세요.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 회원가입 성공 시 이메일 인증 안내 또는 로그인 페이지로 이동
+      alert("회원가입이 완료되었습니다. 이메일 인증을 완료해주세요.");
+      router.push("/auth/login");
+      router.refresh(); // 페이지 새로고침하여 인증 상태 반영
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "회원가입에 실패했습니다. 다시 시도해주세요."
       );
-    } finally {
       setIsLoading(false);
     }
   };
@@ -178,33 +158,6 @@ export default function SignupPage() {
 
           {/* 회원가입 폼 */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* 이름 입력 */}
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-foreground mb-2"
-              >
-                이름 <span className="text-destructive">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  required
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="이름을 입력하세요"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
             {/* 이메일 입력 */}
             <div>
               <label
@@ -227,32 +180,6 @@ export default function SignupPage() {
                   onChange={handleChange}
                   className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder="이메일을 입력하세요"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            {/* 전화번호 입력 (선택사항) */}
-            <div>
-              <label
-                htmlFor="phone"
-                className="block text-sm font-medium text-foreground mb-2"
-              >
-                전화번호
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Phone className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  autoComplete="tel"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="전화번호를 입력하세요 (선택사항)"
                   disabled={isLoading}
                 />
               </div>
