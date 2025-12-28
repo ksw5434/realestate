@@ -195,10 +195,13 @@ export async function getProperty(
         creator:profiles!created_by (
           id,
           name,
+          email,
           phone,
+          profile_image,
           company_name,
           company_phone,
-          company_email
+          company_email,
+          address
         )
       `)
       .eq("id", id)
@@ -453,10 +456,13 @@ export async function getAllProperties(): Promise<{
         creator:profiles!created_by (
           id,
           name,
+          email,
           phone,
+          profile_image,
           company_name,
           company_phone,
-          company_email
+          company_email,
+          address
         )
       `)
       .order("created_at", { ascending: false });

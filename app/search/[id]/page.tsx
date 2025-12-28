@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { getProperty } from "@/app/dashboard/properties/actions";
+import { Separator } from "@/_components/ui/separator";
 // 카카오맵 타입 정의는 lib/types/kakao.d.ts에서 자동으로 인식됩니다
 
 export default function PropertyDetailPage() {
@@ -127,20 +128,37 @@ export default function PropertyDetailPage() {
 
   const propertyInfo = getPropertyInfo();
 
+  // 이메일 기반 랜덤 아바타 이미지 생성 함수
+  const generateAvatarFromEmail = (email: string): string => {
+    if (!email) return "/search/profile.jpg";
+    // 이메일을 해시하여 일관된 아바타 생성 (DiceBear API 사용)
+    // 이메일을 seed로 사용하여 동일한 이메일은 항상 같은 아바타를 생성
+    const encodedEmail = encodeURIComponent(email.trim().toLowerCase());
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodedEmail}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  };
+
   // 작성자 정보 (매물 등록자 정보)
   const creatorInfo = property?.creator
     ? {
         name: property.creator.name || "이름 없음",
         companyName: property.creator.company_name || "",
         phone: property.creator.phone || property.creator.company_phone || "",
-        email: property.creator.company_email || "",
-        image: "/search/profile.jpg", // 프로필 이미지는 추후 추가 가능
+        email: property.creator.email || property.creator.company_email || "", // profiles 테이블의 email 필드 우선 사용
+        address: property.creator.address || "", // 회사 주소
+        image: property.creator.profile_image
+          ? property.creator.profile_image
+          : property.creator.email || property.creator.company_email
+          ? generateAvatarFromEmail(
+              property.creator.email || property.creator.company_email || ""
+            )
+          : "/search/profile.jpg", // profile_image가 있으면 사용, 없으면 이메일 기반 아바타 생성
       }
     : {
         name: "정보 없음",
         companyName: "",
         phone: "",
         email: "",
+        address: "",
         image: "/search/profile.jpg",
       };
 
@@ -973,9 +991,9 @@ export default function PropertyDetailPage() {
         {/* 오른쪽 컬럼: 에이전트 정보 및 문의 폼 */}
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-10.5 pt-4 lg:self-start">
           {/* 작성자 정보 카드 */}
-          <div className="bg-primary text-primary-foreground rounded-lg p-6">
-            <div className="flex items-start gap-4 mb-4">
-              <div className="relative w-16 h-16 rounded-full overflow-hidden bg-white/20 flex-shrink-0">
+          <div className="bg-primary text-primary-foreground rounded-lg p-4">
+            <div className="flex items-start gap-4 h-32">
+              <div className="relative h-32 rounded-lg aspect-[3/4] overflow-hidden bg-white/20 flex-shrink-0">
                 <Image
                   src={creatorInfo.image}
                   alt={creatorInfo.name}
@@ -983,43 +1001,51 @@ export default function PropertyDetailPage() {
                   className="object-cover"
                 />
               </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg">{creatorInfo.name}</h3>
-                {creatorInfo.companyName && (
-                  <p className="text-primary-foreground/80 text-sm">
-                    {creatorInfo.companyName}
-                  </p>
-                )}
+              <div className="flex flex-col justify-between h-full text-sm ">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-lg">{creatorInfo.name}</h3>
+                    <Separator orientation="vertical" />
+                    <p>공인중개사</p>
+                  </div>
+
+                  {creatorInfo.phone && (
+                    <p className="flex items-center gap-2">
+                      <Phone className="size-4" />
+                      <a
+                        href={`tel:${creatorInfo.phone}`}
+                        className="hover:underline"
+                      >
+                        {creatorInfo.phone}
+                      </a>
+                    </p>
+                  )}
+                  {creatorInfo.email && (
+                    <p className="flex items-center gap-2">
+                      <Mail className="size-4" />
+                      <a
+                        href={`mailto:${creatorInfo.email}`}
+                        className="hover:underline break-all"
+                      >
+                        {creatorInfo.email}
+                      </a>
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  {creatorInfo.companyName && (
+                    <p className="text-primary-foreground/80 text-sm">
+                      {creatorInfo.companyName}
+                    </p>
+                  )}
+                  {creatorInfo.address && (
+                    <p className="flex items-center gap-2">
+                      <MapPin className="size-4" />
+                      <span className="break-all">{creatorInfo.address}</span>
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="space-y-2 text-sm">
-              {creatorInfo.phone && (
-                <p className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  <a
-                    href={`tel:${creatorInfo.phone}`}
-                    className="hover:underline"
-                  >
-                    {creatorInfo.phone}
-                  </a>
-                </p>
-              )}
-              {creatorInfo.email && (
-                <p className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  <a
-                    href={`mailto:${creatorInfo.email}`}
-                    className="hover:underline break-all"
-                  >
-                    {creatorInfo.email}
-                  </a>
-                </p>
-              )}
-              {!creatorInfo.phone && !creatorInfo.email && (
-                <p className="text-primary-foreground/60 text-xs">
-                  연락처 정보가 없습니다.
-                </p>
-              )}
             </div>
           </div>
 

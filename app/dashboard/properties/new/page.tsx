@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { createProperty } from "../actions";
 import { createClient } from "@/lib/supabase/client";
+import PostCode from "react-daum-postcode";
 
 export default function NewPropertyPage() {
   const router = useRouter();
@@ -28,6 +29,7 @@ export default function NewPropertyPage() {
     new Set()
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAddrModal, setShowAddrModal] = useState(false); // 주소 검색 모달 상태
 
   // 폼 데이터 상태 관리
   const [formData, setFormData] = useState({
@@ -61,7 +63,9 @@ export default function NewPropertyPage() {
     descriptions: [""],
 
     // 위치 정보
-    address: "",
+    zonecode: "", // 우편번호
+    address: "", // 기본 주소
+    detailAddress: "", // 상세 주소
     mapUrl: "",
 
     // 주변시설 정보
@@ -328,6 +332,46 @@ export default function NewPropertyPage() {
     fileInputRef.current?.click();
   };
 
+  // 주소 검색 모달 열기
+  const openAddrModal = () => {
+    setShowAddrModal(true);
+  };
+
+  // 주소 검색 모달 닫기
+  const closeAddrModal = () => {
+    setShowAddrModal(false);
+  };
+
+  // Daum 주소 API 완료 핸들러
+  const handleAddressComplete = (data: any) => {
+    let fullAddress = data.address; // 기본 주소
+    let extraAddress = ""; // 참고항목
+
+    const { addressType, bname, buildingName, zonecode } = data;
+
+    // 도로명 주소인 경우 참고항목 추가
+    if (addressType === "R") {
+      if (bname !== "") {
+        extraAddress += bname;
+      }
+      if (buildingName !== "") {
+        extraAddress +=
+          extraAddress !== "" ? `, ${buildingName}` : buildingName;
+      }
+      fullAddress += extraAddress !== "" ? ` ${extraAddress}` : "";
+    }
+
+    // 폼 데이터 업데이트
+    setFormData({
+      ...formData,
+      zonecode: zonecode,
+      address: fullAddress,
+    });
+
+    // 모달 닫기
+    setShowAddrModal(false);
+  };
+
   // 폼 제출 처리
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -365,9 +409,15 @@ export default function NewPropertyPage() {
       // 이미지 URL 배열에서 빈 항목 제거
       const imageUrls = formData.imageUrls.filter((url) => url.trim() !== "");
 
+      // 주소 합치기 (기본 주소 + 상세 주소)
+      const fullAddress = formData.detailAddress
+        ? `${formData.address} ${formData.detailAddress}`.trim()
+        : formData.address;
+
       // 데이터 저장
       const result = await createProperty({
         ...formData,
+        address: fullAddress, // 합쳐진 주소로 저장
         descriptions,
         facilities,
         imageUrls,
@@ -984,16 +1034,53 @@ export default function NewPropertyPage() {
                 <label className="block text-sm font-medium text-foreground mb-1">
                   주소 <span className="text-destructive">*</span>
                 </label>
+                <div className="flex flex-row gap-3 mb-3">
+                  {/* 우편번호 표시 필드 */}
+                  <div className="flex items-center justify-center border border-input rounded-md w-[120px] h-[42px] text-foreground pointer-events-none bg-muted">
+                    {formData.zonecode || "우편번호"}
+                  </div>
+                  {/* 주소 찾기 버튼 */}
+                  <button
+                    type="button"
+                    onClick={openAddrModal}
+                    className="bg-primary text-primary-foreground rounded-md w-fit h-[42px] px-4 py-2 hover:bg-primary/90 transition-colors"
+                  >
+                    주소 찾기
+                  </button>
+                </div>
+                {/* 기본 주소 입력 필드 (읽기 전용) */}
                 <input
                   type="text"
                   value={formData.address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                  placeholder="예: 서울특별시 서초구 반포동"
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  readOnly
+                  placeholder="주소 찾기 버튼을 클릭하여 주소를 검색하세요"
+                  className="w-full px-3 py-2 border border-input rounded-md bg-muted text-foreground mb-3 cursor-not-allowed"
                   required
                 />
+                {/* 상세 주소 입력 필드 */}
+                <input
+                  type="text"
+                  value={formData.detailAddress}
+                  onChange={(e) =>
+                    setFormData({ ...formData, detailAddress: e.target.value })
+                  }
+                  placeholder="상세주소를 입력해주세요 (예: 101동 101호)"
+                  className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                {/* 주소 검색 모달 */}
+                {showAddrModal && (
+                  <div
+                    onClick={closeAddrModal}
+                    className="fixed top-0 left-0 w-full h-full z-[101] bg-black/50 flex items-center justify-center"
+                  >
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="relative z-[1000]"
+                    >
+                      <PostCode onComplete={handleAddressComplete} />
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, Check } from "lucide-react";
 import { signUpWithEmail } from "@/lib/auth";
+import { updateProfileAfterSignup } from "@/lib/auth-actions";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -98,7 +99,8 @@ export default function SignupPage() {
         if (signupError.message.includes("이미 등록된")) {
           errorMessage = "이미 등록된 이메일입니다.";
         } else if (signupError.message.includes("비밀번호")) {
-          errorMessage = "비밀번호가 너무 약합니다. 더 강한 비밀번호를 사용해주세요.";
+          errorMessage =
+            "비밀번호가 너무 약합니다. 더 강한 비밀번호를 사용해주세요.";
         } else {
           errorMessage = signupError.message;
         }
@@ -110,6 +112,23 @@ export default function SignupPage() {
 
       if (!user) {
         setError("회원가입에 실패했습니다. 다시 시도해주세요.");
+        setIsLoading(false);
+        return;
+      }
+
+      // 프로필에 이메일 저장 (서버 액션 사용)
+      const { success, error: profileError } = await updateProfileAfterSignup(
+        user.id,
+        formData.email
+      );
+
+      if (!success) {
+        console.error("프로필 업데이트 실패:", profileError);
+        // 프로필 업데이트 실패해도 회원가입은 성공했으므로 경고만 표시
+        setError(
+          profileError ||
+            "회원가입은 완료되었지만 프로필 저장에 실패했습니다. 나중에 프로필을 수정해주세요."
+        );
         setIsLoading(false);
         return;
       }

@@ -46,6 +46,7 @@ export default function ProfilePage() {
   // 회사 정보 상태 관리
   const [companyData, setCompanyData] = useState({
     companyName: "",
+    position: "", // 직책 필드 추가
     businessNumber: "",
     representative: "",
     companyPhone: "",
@@ -113,6 +114,7 @@ export default function ProfilePage() {
           // 회사 정보 설정
           setCompanyData({
             companyName: profile.company_name || "",
+            position: profile.position || "", // 직책 필드
             businessNumber: profile.business_number || "",
             representative: profile.representative || "",
             companyPhone: profile.company_phone || "",
@@ -324,31 +326,34 @@ export default function ProfilePage() {
     setCompanyError("");
     setSuccess("");
 
-    // 필수 필드 검사
+    // 필수 필드 검사 (회사명, 회사 전화번호, 주소만 필수)
     if (
       !companyData.companyName ||
-      !companyData.businessNumber ||
-      !companyData.representative ||
       !companyData.companyPhone ||
-      !companyData.companyEmail ||
       !companyData.address
     ) {
-      setCompanyError("필수 항목을 모두 입력해주세요.");
+      setCompanyError(
+        "필수 항목(회사명, 회사 전화번호, 주소)을 모두 입력해주세요."
+      );
       return;
     }
 
-    // 이메일 형식 검사
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(companyData.companyEmail)) {
-      setCompanyError("올바른 이메일 형식을 입력해주세요.");
-      return;
+    // 이메일 형식 검사 (입력된 경우에만)
+    if (companyData.companyEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(companyData.companyEmail)) {
+        setCompanyError("올바른 이메일 형식을 입력해주세요.");
+        return;
+      }
     }
 
-    // 사업자등록번호 형식 검사 (숫자와 하이픈만 허용)
-    const businessNumberRegex = /^[0-9-]+$/;
-    if (!businessNumberRegex.test(companyData.businessNumber)) {
-      setCompanyError("올바른 사업자등록번호 형식을 입력해주세요.");
-      return;
+    // 사업자등록번호 형식 검사 (입력된 경우에만, 숫자와 하이픈만 허용)
+    if (companyData.businessNumber) {
+      const businessNumberRegex = /^[0-9-]+$/;
+      if (!businessNumberRegex.test(companyData.businessNumber)) {
+        setCompanyError("올바른 사업자등록번호 형식을 입력해주세요.");
+        return;
+      }
     }
 
     // 웹사이트 URL 형식 검사 (입력된 경우)
@@ -368,10 +373,11 @@ export default function ProfilePage() {
       const { profile: updatedProfile, error: updateError } =
         await updateProfile({
           company_name: companyData.companyName,
-          business_number: companyData.businessNumber,
-          representative: companyData.representative,
+          position: companyData.position || null, // 직책 필드
+          business_number: companyData.businessNumber || null,
+          representative: companyData.representative || null,
           company_phone: companyData.companyPhone,
-          company_email: companyData.companyEmail,
+          company_email: companyData.companyEmail || null,
           address: companyData.address,
           website: companyData.website || null,
         });
@@ -609,7 +615,7 @@ export default function ProfilePage() {
                     name="name"
                     type="text"
                     required
-                    value={profileData.name}
+                    value={profileData.name ?? ""}
                     onChange={handleProfileChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="이름을 입력하세요"
@@ -635,7 +641,7 @@ export default function ProfilePage() {
                     name="email"
                     type="email"
                     required
-                    value={profileData.email}
+                    value={profileData.email ?? ""}
                     readOnly
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-muted text-foreground cursor-not-allowed"
                     placeholder="이메일을 입력하세요"
@@ -664,7 +670,7 @@ export default function ProfilePage() {
                     name="phone"
                     type="tel"
                     required
-                    value={profileData.phone}
+                    value={profileData.phone ?? ""}
                     onChange={handleProfileChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="전화번호를 입력하세요 (예: 010-1234-5678)"
@@ -718,7 +724,7 @@ export default function ProfilePage() {
                     name="companyName"
                     type="text"
                     required
-                    value={companyData.companyName}
+                    value={companyData.companyName ?? ""}
                     onChange={handleCompanyChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="회사명을 입력하세요"
@@ -727,13 +733,41 @@ export default function ProfilePage() {
                 </div>
               </div>
 
+              {/* 직책 입력 */}
+              <div>
+                <label
+                  htmlFor="position"
+                  className="block text-sm font-medium text-foreground mb-2"
+                >
+                  직책
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <input
+                    id="position"
+                    name="position"
+                    type="text"
+                    value={companyData.position ?? ""}
+                    onChange={handleCompanyChange}
+                    className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="직책을 입력하세요 (예: 대표이사, 팀장 등)"
+                    disabled={isCompanyLoading}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  선택사항입니다.
+                </p>
+              </div>
+
               {/* 사업자등록번호 입력 */}
               <div>
                 <label
                   htmlFor="businessNumber"
                   className="block text-sm font-medium text-foreground mb-2"
                 >
-                  사업자등록번호 <span className="text-destructive">*</span>
+                  사업자등록번호
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -743,14 +777,16 @@ export default function ProfilePage() {
                     id="businessNumber"
                     name="businessNumber"
                     type="text"
-                    required
-                    value={companyData.businessNumber}
+                    value={companyData.businessNumber ?? ""}
                     onChange={handleCompanyChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="사업자등록번호를 입력하세요 (예: 123-45-67890)"
                     disabled={isCompanyLoading}
                   />
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  선택사항입니다.
+                </p>
               </div>
 
               {/* 대표자명 입력 */}
@@ -759,7 +795,7 @@ export default function ProfilePage() {
                   htmlFor="representative"
                   className="block text-sm font-medium text-foreground mb-2"
                 >
-                  대표자명 <span className="text-destructive">*</span>
+                  대표자명
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -769,14 +805,16 @@ export default function ProfilePage() {
                     id="representative"
                     name="representative"
                     type="text"
-                    required
-                    value={companyData.representative}
+                    value={companyData.representative ?? ""}
                     onChange={handleCompanyChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="대표자명을 입력하세요"
                     disabled={isCompanyLoading}
                   />
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  선택사항입니다.
+                </p>
               </div>
 
               {/* 회사 전화번호 입력 */}
@@ -796,7 +834,7 @@ export default function ProfilePage() {
                     name="companyPhone"
                     type="tel"
                     required
-                    value={companyData.companyPhone}
+                    value={companyData.companyPhone ?? ""}
                     onChange={handleCompanyChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="회사 전화번호를 입력하세요 (예: 02-1234-5678)"
@@ -811,7 +849,7 @@ export default function ProfilePage() {
                   htmlFor="companyEmail"
                   className="block text-sm font-medium text-foreground mb-2"
                 >
-                  회사 이메일 <span className="text-destructive">*</span>
+                  회사 이메일
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -821,14 +859,16 @@ export default function ProfilePage() {
                     id="companyEmail"
                     name="companyEmail"
                     type="email"
-                    required
-                    value={companyData.companyEmail}
+                    value={companyData.companyEmail ?? ""}
                     onChange={handleCompanyChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="회사 이메일을 입력하세요"
                     disabled={isCompanyLoading}
                   />
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  선택사항입니다.
+                </p>
               </div>
 
               {/* 주소 입력 */}
@@ -847,7 +887,7 @@ export default function ProfilePage() {
                     id="address"
                     name="address"
                     required
-                    value={companyData.address}
+                    value={companyData.address ?? ""}
                     onChange={handleCompanyChange}
                     rows={2}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
@@ -873,7 +913,7 @@ export default function ProfilePage() {
                     id="website"
                     name="website"
                     type="url"
-                    value={companyData.website}
+                    value={companyData.website ?? ""}
                     onChange={handleCompanyChange}
                     className="block w-full pl-10 pr-3 py-2 border border-input rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="웹사이트 URL을 입력하세요 (예: https://example.com)"

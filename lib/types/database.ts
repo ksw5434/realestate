@@ -21,6 +21,7 @@ export interface Database {
 
           // 회사 정보 (선택사항)
           company_name: string | null;
+          position: string | null; // 직책
           business_number: string | null;
           representative: string | null;
           company_phone: string | null;
@@ -39,6 +40,7 @@ export interface Database {
           profile_image?: string | null;
           is_admin?: boolean;
           company_name?: string | null;
+          position?: string | null; // 직책
           business_number?: string | null;
           representative?: string | null;
           company_phone?: string | null;
@@ -56,6 +58,7 @@ export interface Database {
           profile_image?: string | null;
           is_admin?: boolean;
           company_name?: string | null;
+          position?: string | null; // 직책
           business_number?: string | null;
           representative?: string | null;
           company_phone?: string | null;
