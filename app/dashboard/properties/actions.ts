@@ -122,10 +122,14 @@ export async function createProperty(
       total_households: formData.totalHouseholds || null,
       total_parking: formData.totalParking || null,
       constructor: formData.constructor || null,
-      descriptions: formData.descriptions.length > 0 ? formData.descriptions : null,
+      descriptions:
+        formData.descriptions.length > 0 ? formData.descriptions : null,
       address: formData.address,
       map_url: formData.mapUrl || null,
-      facilities: Object.keys(formData.facilities).length > 0 ? formData.facilities : null,
+      facilities:
+        Object.keys(formData.facilities).length > 0
+          ? formData.facilities
+          : null,
       financial_info: formData.financialInfo,
       created_by: profile.id,
     };
@@ -191,9 +195,7 @@ export async function createProperty(
 /**
  * 부동산 매물 조회 서버 액션
  */
-export async function getProperty(
-  id: string
-): Promise<{
+export async function getProperty(id: string): Promise<{
   success: boolean;
   error?: string;
   property?: any;
@@ -203,9 +205,11 @@ export async function getProperty(
 
     // 매물 정보 조회 (작성자 정보 포함)
     // created_by 필드를 통해 매물을 입력한 사람의 profiles 정보를 가져옴
+    // 중요: 매물의 실제 작성자(created_by) 정보를 가져옴 (현재 로그인한 사용자와 무관)
     const { data: property, error: propertyError } = await supabase
       .from("properties")
-      .select(`
+      .select(
+        `
         *,
         creator:profiles!created_by (
           id,
@@ -219,7 +223,8 @@ export async function getProperty(
           address,
           position
         )
-      `)
+      `
+      )
       .eq("id", id)
       .single();
 
@@ -231,11 +236,61 @@ export async function getProperty(
       };
     }
 
-    // 작성자 정보가 없는 경우 로그 출력 (디버깅용)
-    if (!property.creator) {
+    // 디버깅: 매물의 작성자 정보 확인
+    console.log(
+      `[getProperty] 매물 ID: ${id}, created_by: ${property.created_by}`
+    );
+    console.log(`[getProperty] 작성자 정보 (조인 결과):`, property.creator);
+
+    // 작성자 정보가 없는 경우 created_by가 있으면 별도로 프로필 조회
+    if (!property.creator && property.created_by) {
       console.warn(
-        `매물 ${id}의 작성자 정보가 없습니다. created_by: ${property.created_by}`
+        `매물 ${id}의 작성자 정보가 조인되지 않았습니다. created_by: ${property.created_by}. 별도로 프로필을 조회합니다.`
       );
+
+      // created_by를 사용하여 프로필 정보 직접 조회
+      const { data: creatorProfile, error: creatorError } = await supabase
+        .from("profiles")
+        .select(
+          `
+          id,
+          name,
+          email,
+          phone,
+          profile_image,
+          company_name,
+          company_phone,
+          company_email,
+          address,
+          position
+        `
+        )
+        .eq("id", property.created_by)
+        .single();
+
+      if (!creatorError && creatorProfile) {
+        // 프로필 정보를 찾았으면 property 객체에 추가
+        console.log(
+          `[getProperty] 별도 조회로 작성자 정보를 찾았습니다:`,
+          creatorProfile
+        );
+        property.creator = creatorProfile;
+      } else {
+        // 프로필이 없는 경우 (PGRST116: 결과에 0개의 행이 포함됨)
+        // 이는 정상적인 케이스일 수 있으므로 에러로 처리하지 않고 경고만 로그
+        if (creatorError?.code === "PGRST116") {
+          console.warn(
+            `매물 ${id}의 작성자 프로필이 존재하지 않습니다. created_by: ${property.created_by}`
+          );
+        } else {
+          // 다른 에러인 경우에만 에러 로그 (RLS 정책 문제일 가능성)
+          console.error("프로필 조회 실패:", creatorError);
+          console.error(
+            "RLS 정책 문제일 수 있습니다. 마이그레이션 010을 확인하세요."
+          );
+        }
+        // 프로필이 없어도 매물 정보는 정상적으로 반환 (프론트엔드에서 기본값 처리)
+      }
     }
 
     // 이미지 정보 조회
@@ -331,10 +386,14 @@ export async function updateProperty(
       total_households: formData.totalHouseholds || null,
       total_parking: formData.totalParking || null,
       constructor: formData.constructor || null,
-      descriptions: formData.descriptions.length > 0 ? formData.descriptions : null,
+      descriptions:
+        formData.descriptions.length > 0 ? formData.descriptions : null,
       address: formData.address,
       map_url: formData.mapUrl || null,
-      facilities: Object.keys(formData.facilities).length > 0 ? formData.facilities : null,
+      facilities:
+        Object.keys(formData.facilities).length > 0
+          ? formData.facilities
+          : null,
       financial_info: formData.financialInfo,
     };
 
@@ -476,7 +535,8 @@ export async function getAllProperties(): Promise<{
     // created_by 필드를 통해 매물을 입력한 사람의 profiles 정보를 가져옴
     const { data: properties, error: propertiesError } = await supabase
       .from("properties")
-      .select(`
+      .select(
+        `
         *,
         creator:profiles!created_by (
           id,
@@ -490,7 +550,8 @@ export async function getAllProperties(): Promise<{
           address,
           position
         )
-      `)
+      `
+      )
       .order("created_at", { ascending: false });
 
     if (propertiesError) {
@@ -533,4 +594,3 @@ export async function getAllProperties(): Promise<{
     };
   }
 }
-

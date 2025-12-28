@@ -77,6 +77,15 @@ export default function PropertyDetailPage() {
       ? [property.imageUrl]
       : ["/search/1.jpg", "/search/2.jpg", "/search/3.jpg"];
 
+  // 이메일 기반 랜덤 아바타 이미지 생성 함수
+  const generateAvatarFromEmail = (email: string): string => {
+    if (!email) return "/search/profile.jpg";
+    // 이메일을 해시하여 일관된 아바타 생성 (DiceBear API 사용)
+    // 이메일을 seed로 사용하여 동일한 이메일은 항상 같은 아바타를 생성
+    const encodedEmail = encodeURIComponent(email.trim().toLowerCase());
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodedEmail}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
+  };
+
   // 매물 정보 변환 함수
   const getPropertyInfo = () => {
     if (!property) return null;
@@ -125,89 +134,52 @@ export default function PropertyDetailPage() {
         address: property.address || "",
         mapUrl: property.map_url || "#",
       },
+      author: (() => {
+        // 작성자 정보 처리 함수
+        // properties 테이블의 created_by 필드를 통해 조인된 creator 정보 사용
+        const creator = property?.creator;
+
+        if (!creator) {
+          // 작성자 정보가 없는 경우 기본값 반환
+          return {
+            name: "정보 없음",
+            position: "공인중개사",
+            companyName: "",
+            phone: "",
+            email: "",
+            address: "",
+            image: "/search/profile.jpg",
+          };
+        }
+
+        // 이메일 우선순위: profiles.email > profiles.company_email
+        const email = creator.email || creator.company_email || "";
+
+        // 전화번호 우선순위: profiles.phone > profiles.company_phone
+        const phone = creator.phone || creator.company_phone || "";
+
+        // 프로필 이미지 처리: profile_image > 이메일 기반 아바타 > 기본 이미지
+        let profileImage = "/search/profile.jpg";
+        if (creator.profile_image) {
+          profileImage = creator.profile_image;
+        } else if (email) {
+          profileImage = generateAvatarFromEmail(email);
+        }
+
+        return {
+          name: creator.name || "이름 없음",
+          position: creator.position || "공인중개사",
+          companyName: creator.company_name || "",
+          phone: phone,
+          email: email,
+          address: creator.address || "",
+          image: profileImage,
+        };
+      })(),
     };
   };
 
   const propertyInfo = getPropertyInfo();
-
-  // 이메일 기반 랜덤 아바타 이미지 생성 함수
-  const generateAvatarFromEmail = (email: string): string => {
-    if (!email) return "/search/profile.jpg";
-    // 이메일을 해시하여 일관된 아바타 생성 (DiceBear API 사용)
-    // 이메일을 seed로 사용하여 동일한 이메일은 항상 같은 아바타를 생성
-    const encodedEmail = encodeURIComponent(email.trim().toLowerCase());
-    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodedEmail}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
-  };
-
-  // 작성자 정보 (매물 등록자 정보)
-  // properties 테이블의 created_by 필드를 통해 profiles 테이블과 조인하여 작성자 정보를 가져옴
-  // getProperty 함수에서 creator:profiles!created_by로 조인된 데이터를 사용
-  const getCreatorInfo = () => {
-    // created_by 필드 확인
-    const createdById = property?.created_by;
-
-    // creator 정보 확인 (getProperty에서 조인된 데이터)
-    const creator = property?.creator;
-
-    // 디버깅용 로그 (개발 환경에서만)
-    if (process.env.NODE_ENV === "development") {
-      console.log("매물 작성자 정보:", {
-        created_by: createdById,
-        hasCreator: !!creator,
-        creatorData: creator,
-      });
-    }
-
-    // 작성자 정보가 있는 경우
-    if (creator) {
-      // 이메일 우선순위: profiles.email > profiles.company_email
-      const email = creator.email || creator.company_email || "";
-
-      // 전화번호 우선순위: profiles.phone > profiles.company_phone
-      const phone = creator.phone || creator.company_phone || "";
-
-      // 프로필 이미지 우선순위: profile_image > 이메일 기반 아바타 > 기본 이미지
-      let profileImage = "/search/profile.jpg";
-      if (creator.profile_image) {
-        profileImage = creator.profile_image;
-      } else if (email) {
-        profileImage = generateAvatarFromEmail(email);
-      }
-
-      return {
-        name: creator.name || "이름 없음",
-        position: creator.position || "공인중개사",
-        companyName: creator.company_name || "",
-        phone: phone,
-        email: email,
-        address: creator.address || "",
-        image: profileImage,
-        // 디버깅용 원본 데이터 (개발 환경에서만)
-        ...(process.env.NODE_ENV === "development" && { _raw: creator }),
-      };
-    }
-
-    // 작성자 정보가 없는 경우 (created_by가 null이거나 프로필이 없는 경우)
-    return {
-      name: "정보 없음",
-      position: "공인중개사",
-      companyName: "",
-      phone: "",
-      email: "",
-      address: "",
-      image: "/search/profile.jpg",
-      // 디버깅 정보
-      ...(process.env.NODE_ENV === "development" && {
-        _debug: {
-          created_by: createdById,
-          hasCreator: false,
-        },
-      }),
-    };
-  };
-
-  // 작성자 정보 계산
-  const creatorInfo = getCreatorInfo();
 
   // 이미지 갤러리 네비게이션
   const handlePreviousImage = () => {
@@ -1079,14 +1051,16 @@ export default function PropertyDetailPage() {
         {/* 오른쪽 컬럼: 에이전트 정보 및 문의 폼 */}
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-10.5 pt-4 lg:self-start">
           {/* 작성자 정보 카드 */}
+
+          {/* 작성자 정보 카드 */}
           {/* properties 테이블의 created_by 필드를 통해 profiles 테이블과 조인하여 가져온 작성자 정보를 표시 */}
           {/* getProperty 함수에서 creator:profiles!created_by로 조인된 데이터 사용 */}
           <div className="bg-primary text-primary-foreground rounded-lg p-4">
             <div className="flex items-start gap-4 h-32">
               <div className="relative h-32 rounded-lg aspect-[3/4] overflow-hidden bg-white/20 flex-shrink-0">
                 <Image
-                  src={creatorInfo.image}
-                  alt={creatorInfo.name}
+                  src={propertyInfo.author.image || "/search/profile.jpg"}
+                  alt={propertyInfo.author.name || "작성자"}
                   fill
                   className="object-cover"
                 />
@@ -1094,44 +1068,48 @@ export default function PropertyDetailPage() {
               <div className="flex flex-col justify-between h-full text-sm ">
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-lg">{creatorInfo.name}</h3>
+                    <h3 className="font-bold text-lg">
+                      {propertyInfo.author.name}
+                    </h3>
                     <Separator orientation="vertical" />
-                    <p>{creatorInfo.position}</p>
+                    <p>{propertyInfo.author.position}</p>
                   </div>
 
-                  {creatorInfo.phone && (
+                  {propertyInfo.author.phone && (
                     <p className="flex items-center gap-2">
                       <Phone className="size-4" />
                       <a
-                        href={`tel:${creatorInfo.phone}`}
+                        href={`tel:${propertyInfo.author.phone}`}
                         className="hover:underline"
                       >
-                        {creatorInfo.phone}
+                        {propertyInfo.author.phone}
                       </a>
                     </p>
                   )}
-                  {creatorInfo.email && (
+                  {propertyInfo.author.email && (
                     <p className="flex items-center gap-2">
                       <Mail className="size-4" />
                       <a
-                        href={`mailto:${creatorInfo.email}`}
+                        href={`mailto:${propertyInfo.author.email}`}
                         className="hover:underline break-all"
                       >
-                        {creatorInfo.email}
+                        {propertyInfo.author.email}
                       </a>
                     </p>
                   )}
                 </div>
                 <div className="flex flex-col">
-                  {creatorInfo.companyName && (
+                  {propertyInfo.author.companyName && (
                     <p className="text-primary-foreground/80 text-sm">
-                      {creatorInfo.companyName}
+                      {propertyInfo.author.companyName}
                     </p>
                   )}
-                  {creatorInfo.address && (
+                  {propertyInfo.author.address && (
                     <p className="flex items-center gap-2">
                       <MapPin className="size-4" />
-                      <span className="break-all">{creatorInfo.address}</span>
+                      <span className="break-all">
+                        {propertyInfo.author.address}
+                      </span>
                     </p>
                   )}
                 </div>
