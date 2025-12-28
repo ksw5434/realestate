@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   User,
   Mail,
@@ -34,6 +34,9 @@ const generateAvatarFromEmail = (email: string): string => {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const supabase = createClient();
+  const authStateListenerRef = useRef<any>(null); // 인증 상태 리스너 참조
 
   // 사용자 정보 상태 관리
   const [profileData, setProfileData] = useState({
@@ -75,62 +78,102 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  // 컴포넌트 마운트 시 사용자 정보 로드
+  // 사용자 정보 로드 함수 (재사용 가능하도록 분리)
+  const loadUserData = async () => {
+    try {
+      // 1. 현재 사용자 정보 가져오기 (이메일)
+      const user = await getCurrentUser();
+      if (!user) {
+        router.push("/auth/login");
+        return;
+      }
+
+      // 2. 프로필 정보 가져오기
+      const { profile, error: profileError } = await getProfile();
+
+      if (profileError) {
+        console.error("프로필 로드 실패:", profileError);
+        setError("프로필 정보를 불러오는데 실패했습니다.");
+        return;
+      }
+
+      if (profile) {
+        // 프로필 이미지가 없으면 이메일 기반 랜덤 이미지 생성
+        const profileImageUrl = profile.profile_image
+          ? profile.profile_image
+          : user.email
+          ? generateAvatarFromEmail(user.email)
+          : "";
+
+        // 프로필 데이터 설정
+        setProfileData({
+          name: profile.name || "",
+          email: user.email || "",
+          phone: profile.phone || "",
+          profileImage: profileImageUrl,
+        });
+
+        // 회사 정보 설정
+        setCompanyData({
+          companyName: profile.company_name || "",
+          position: profile.position || "", // 직책 필드
+          businessNumber: profile.business_number || "",
+          representative: profile.representative || "",
+          companyPhone: profile.company_phone || "",
+          companyEmail: profile.company_email || "",
+          address: profile.address || "",
+          website: profile.website || "",
+        });
+      }
+    } catch (err) {
+      console.error("데이터 로드 실패:", err);
+      setError("데이터를 불러오는데 실패했습니다.");
+    }
+  };
+
+  // 컴포넌트 마운트 시 사용자 정보 로드 및 인증 상태 감지 설정
   useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        // 1. 현재 사용자 정보 가져오기 (이메일)
-        const user = await getCurrentUser();
-        if (!user) {
-          router.push("/auth/login");
-          return;
-        }
+    // 초기 데이터 로드
+    loadUserData();
 
-        // 2. 프로필 정보 가져오기
-        const { profile, error: profileError } = await getProfile();
+    // URL 쿼리 파라미터 확인 (명시적 refetch 요청)
+    const shouldRefetch = searchParams?.get("refetch") === "true";
+    if (shouldRefetch) {
+      // 쿼리 파라미터 제거 (URL 정리)
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete("refetch");
+      window.history.replaceState({}, "", newUrl.toString());
 
-        if (profileError) {
-          console.error("프로필 로드 실패:", profileError);
-          setError("프로필 정보를 불러오는데 실패했습니다.");
-          return;
-        }
+      // 데이터 다시 로드
+      loadUserData();
+    }
 
-        if (profile) {
-          // 프로필 이미지가 없으면 이메일 기반 랜덤 이미지 생성
-          const profileImageUrl = profile.profile_image
-            ? profile.profile_image
-            : user.email
-            ? generateAvatarFromEmail(user.email)
-            : "";
+    // Supabase 인증 상태 변경 감지 (로그인/로그아웃 시 자동 refetch)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // 로그인 이벤트 발생 시 데이터 refetch
+      if (event === "SIGNED_IN" && session) {
+        console.log("로그인 감지: 프로필 데이터를 다시 불러옵니다.");
+        loadUserData();
+      }
+      // 세션 갱신 시에도 refetch (토큰 갱신 등)
+      if (event === "TOKEN_REFRESHED" && session) {
+        console.log("세션 갱신: 프로필 데이터를 다시 불러옵니다.");
+        loadUserData();
+      }
+    });
 
-          // 프로필 데이터 설정
-          setProfileData({
-            name: profile.name || "",
-            email: user.email || "",
-            phone: profile.phone || "",
-            profileImage: profileImageUrl,
-          });
+    // 리스너 참조 저장 (정리 시 사용)
+    authStateListenerRef.current = subscription;
 
-          // 회사 정보 설정
-          setCompanyData({
-            companyName: profile.company_name || "",
-            position: profile.position || "", // 직책 필드
-            businessNumber: profile.business_number || "",
-            representative: profile.representative || "",
-            companyPhone: profile.company_phone || "",
-            companyEmail: profile.company_email || "",
-            address: profile.address || "",
-            website: profile.website || "",
-          });
-        }
-      } catch (err) {
-        console.error("데이터 로드 실패:", err);
-        setError("데이터를 불러오는데 실패했습니다.");
+    // 컴포넌트 언마운트 시 리스너 정리
+    return () => {
+      if (authStateListenerRef.current) {
+        subscription.unsubscribe();
       }
     };
-
-    loadUserData();
-  }, [router]);
+  }, [router, searchParams]);
 
   // 프로필 정보 변경 핸들러
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

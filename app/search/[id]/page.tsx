@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,10 +15,12 @@ import {
 } from "lucide-react";
 import { getProperty } from "@/app/dashboard/properties/actions";
 import { Separator } from "@/_components/ui/separator";
+import { PropertyCard, Property } from "@/app/_components/PropertyCard";
 // 카카오맵 타입 정의는 lib/types/kakao.d.ts에서 자동으로 인식됩니다
 
 export default function PropertyDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const propertyId = params.id as string;
 
   // 이미지 갤러리 상태 관리
@@ -138,29 +140,74 @@ export default function PropertyDetailPage() {
   };
 
   // 작성자 정보 (매물 등록자 정보)
-  const creatorInfo = property?.creator
-    ? {
-        name: property.creator.name || "이름 없음",
-        companyName: property.creator.company_name || "",
-        phone: property.creator.phone || property.creator.company_phone || "",
-        email: property.creator.email || property.creator.company_email || "", // profiles 테이블의 email 필드 우선 사용
-        address: property.creator.address || "", // 회사 주소
-        image: property.creator.profile_image
-          ? property.creator.profile_image
-          : property.creator.email || property.creator.company_email
-          ? generateAvatarFromEmail(
-              property.creator.email || property.creator.company_email || ""
-            )
-          : "/search/profile.jpg", // profile_image가 있으면 사용, 없으면 이메일 기반 아바타 생성
+  // properties 테이블의 created_by 필드를 통해 profiles 테이블과 조인하여 작성자 정보를 가져옴
+  // getProperty 함수에서 creator:profiles!created_by로 조인된 데이터를 사용
+  const getCreatorInfo = () => {
+    // created_by 필드 확인
+    const createdById = property?.created_by;
+
+    // creator 정보 확인 (getProperty에서 조인된 데이터)
+    const creator = property?.creator;
+
+    // 디버깅용 로그 (개발 환경에서만)
+    if (process.env.NODE_ENV === "development") {
+      console.log("매물 작성자 정보:", {
+        created_by: createdById,
+        hasCreator: !!creator,
+        creatorData: creator,
+      });
+    }
+
+    // 작성자 정보가 있는 경우
+    if (creator) {
+      // 이메일 우선순위: profiles.email > profiles.company_email
+      const email = creator.email || creator.company_email || "";
+
+      // 전화번호 우선순위: profiles.phone > profiles.company_phone
+      const phone = creator.phone || creator.company_phone || "";
+
+      // 프로필 이미지 우선순위: profile_image > 이메일 기반 아바타 > 기본 이미지
+      let profileImage = "/search/profile.jpg";
+      if (creator.profile_image) {
+        profileImage = creator.profile_image;
+      } else if (email) {
+        profileImage = generateAvatarFromEmail(email);
       }
-    : {
-        name: "정보 없음",
-        companyName: "",
-        phone: "",
-        email: "",
-        address: "",
-        image: "/search/profile.jpg",
+
+      return {
+        name: creator.name || "이름 없음",
+        position: creator.position || "공인중개사",
+        companyName: creator.company_name || "",
+        phone: phone,
+        email: email,
+        address: creator.address || "",
+        image: profileImage,
+        // 디버깅용 원본 데이터 (개발 환경에서만)
+        ...(process.env.NODE_ENV === "development" && { _raw: creator }),
       };
+    }
+
+    // 작성자 정보가 없는 경우 (created_by가 null이거나 프로필이 없는 경우)
+    return {
+      name: "정보 없음",
+      position: "공인중개사",
+      companyName: "",
+      phone: "",
+      email: "",
+      address: "",
+      image: "/search/profile.jpg",
+      // 디버깅 정보
+      ...(process.env.NODE_ENV === "development" && {
+        _debug: {
+          created_by: createdById,
+          hasCreator: false,
+        },
+      }),
+    };
+  };
+
+  // 작성자 정보 계산
+  const creatorInfo = getCreatorInfo();
 
   // 이미지 갤러리 네비게이션
   const handlePreviousImage = () => {
@@ -978,11 +1025,52 @@ export default function PropertyDetailPage() {
               <h3 className="text-lg font-semibold text-foreground mb-4">
                 다른 매물
               </h3>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  다른 매물 정보를 불러오는 중...
-                </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* 임시데이터 추후 수정 */}
                 {/* TODO: 다른 매물 목록을 가져와서 표시 */}
+                {[
+                  {
+                    id: "temp-1",
+                    property_number: "TEMP-001",
+                    title: "임시 매물 1",
+                    subtitle: "임시 데이터입니다",
+                    price: "5억 5,000만원",
+                    address: "서울시 강남구 테헤란로 123",
+                    imageUrl:
+                      "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?q=80&w=1174&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                    created_at: new Date().toISOString(),
+                  },
+                  {
+                    id: "temp-2",
+                    property_number: "TEMP-002",
+                    title: "임시 매물 2",
+                    subtitle: "임시 데이터입니다",
+                    price: "3억 2,000만원",
+                    address: "서울시 서초구 서초대로 456",
+                    imageUrl:
+                      "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                    created_at: new Date().toISOString(),
+                  },
+                  {
+                    id: "temp-3",
+                    property_number: "TEMP-003",
+                    title: "임시 매물 3",
+                    subtitle: "임시 데이터입니다",
+                    price: "7억 8,000만원",
+                    address: "서울시 송파구 올림픽로 789",
+                    imageUrl:
+                      "https://images.unsplash.com/photo-1618773928121-c32242e63f39?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+                    created_at: new Date().toISOString(),
+                  },
+                ].map((tempProperty: Property) => (
+                  <PropertyCard
+                    key={tempProperty.id}
+                    property={tempProperty}
+                    variant="search"
+                    onDelete={() => {}}
+                    onClick={() => router.push(`/search/${tempProperty.id}`)}
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -991,6 +1079,8 @@ export default function PropertyDetailPage() {
         {/* 오른쪽 컬럼: 에이전트 정보 및 문의 폼 */}
         <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-10.5 pt-4 lg:self-start">
           {/* 작성자 정보 카드 */}
+          {/* properties 테이블의 created_by 필드를 통해 profiles 테이블과 조인하여 가져온 작성자 정보를 표시 */}
+          {/* getProperty 함수에서 creator:profiles!created_by로 조인된 데이터 사용 */}
           <div className="bg-primary text-primary-foreground rounded-lg p-4">
             <div className="flex items-start gap-4 h-32">
               <div className="relative h-32 rounded-lg aspect-[3/4] overflow-hidden bg-white/20 flex-shrink-0">
@@ -1006,7 +1096,7 @@ export default function PropertyDetailPage() {
                   <div className="flex items-center gap-2">
                     <h3 className="font-bold text-lg">{creatorInfo.name}</h3>
                     <Separator orientation="vertical" />
-                    <p>공인중개사</p>
+                    <p>{creatorInfo.position}</p>
                   </div>
 
                   {creatorInfo.phone && (

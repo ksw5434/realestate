@@ -72,18 +72,32 @@ export async function createProperty(
       };
     }
 
-    // 프로필에서 created_by 확인
-    const { data: profile } = await supabase
+    // 프로필에서 created_by 확인 (없으면 자동 생성)
+    let { data: profile } = await supabase
       .from("profiles")
       .select("id")
       .eq("id", user.id)
       .single();
 
+    // 프로필이 없으면 자동 생성
     if (!profile) {
-      return {
-        success: false,
-        error: "프로필을 찾을 수 없습니다.",
-      };
+      const { data: newProfile, error: insertError } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          email: user.email || null,
+        })
+        .select("id")
+        .single();
+
+      if (insertError || !newProfile) {
+        console.error("프로필 생성 실패:", insertError);
+        return {
+          success: false,
+          error: "프로필을 생성할 수 없습니다.",
+        };
+      }
+      profile = newProfile;
     }
 
     // 매물 데이터 준비
@@ -188,6 +202,7 @@ export async function getProperty(
     const supabase = await createClient();
 
     // 매물 정보 조회 (작성자 정보 포함)
+    // created_by 필드를 통해 매물을 입력한 사람의 profiles 정보를 가져옴
     const { data: property, error: propertyError } = await supabase
       .from("properties")
       .select(`
@@ -201,17 +216,26 @@ export async function getProperty(
           company_name,
           company_phone,
           company_email,
-          address
+          address,
+          position
         )
       `)
       .eq("id", id)
       .single();
 
     if (propertyError || !property) {
+      console.error("매물 조회 실패:", propertyError);
       return {
         success: false,
         error: "매물을 찾을 수 없습니다.",
       };
+    }
+
+    // 작성자 정보가 없는 경우 로그 출력 (디버깅용)
+    if (!property.creator) {
+      console.warn(
+        `매물 ${id}의 작성자 정보가 없습니다. created_by: ${property.created_by}`
+      );
     }
 
     // 이미지 정보 조회
@@ -449,6 +473,7 @@ export async function getAllProperties(): Promise<{
     const supabase = await createClient();
 
     // 매물 목록 조회 (작성자 정보 포함)
+    // created_by 필드를 통해 매물을 입력한 사람의 profiles 정보를 가져옴
     const { data: properties, error: propertiesError } = await supabase
       .from("properties")
       .select(`
@@ -462,7 +487,8 @@ export async function getAllProperties(): Promise<{
           company_name,
           company_phone,
           company_email,
-          address
+          address,
+          position
         )
       `)
       .order("created_at", { ascending: false });
